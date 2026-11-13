@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#070b14" />
+  <!-- iOS 免签名全屏 Web App (PWA) 专用配置 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="VEX IQ 计分" />
+  <!-- Android / 小米 HyperOS Chrome 全屏 Web App 配置 -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>HIS Robotics · VEX IQ 2026 Level Up (小米 &amp; iOS 移动版)</title>
+  <style>
+    :root {
+      --bg-deep: #070b14;
+      --gold: #f2b729;
+      --red-bag: #e1252b;
+      --blue-bag: #29a8ff;
+      --yellow-bag: #fce055;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      /* 适配小米挖孔屏 / HyperOS 状态栏与 iPhone 灵动岛安全区 */
+      --safe-top: max(env(safe-area-inset-top, 0px), 14px);
+      --safe-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    body {
+      font-family: "MiSans", "PingFang SC", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Roboto", sans-serif;
+      background: radial-gradient(circle at 20% 10%, #1e293b 0%, #090d16 55%, #05070c 100%);
+      color: var(--text-main);
+      min-height: 100dvh;
+      overflow-x: hidden;
+      padding-top: var(--safe-top);
+      padding-bottom: calc(var(--safe-bottom) + 84px);
+      padding-left: 14px;
+      padding-right: 14px;
+    }
+
+    /* 液态背景光斑 */
+    .ambient-canvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(70px);
+      opacity: 0.38;
+    }
+    .blob-1 {
+      width: 280px;
+      height: 280px;
+      background: radial-gradient(circle, #38bdf8, #1d4ed8);
+      top: -40px;
+      left: -30px;
+    }
+    .blob-2 {
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle, #f59e0b, #e11d48);
+      top: 22%;
+      right: -40px;
+    }
+
+    .mobile-shell {
+      position: relative;
+      z-index: 1;
+      max-width: 540px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* 顶部栏：左上角 HIS Robotics Logo + 屏幕常亮/音效开关 */
+    .top-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      padding-top: 4px;
+    }
+    .brand-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .brand-logo {
+      height: 32px;
+      width: auto;
+      object-fit: contain;
+      filter: drop-shadow(0 2px 8px rgba(242, 183, 41, 0.3));
+    }
+    .brand-tag {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--gold);
+      letter-spacing: 0.05em;
+      display: block;
+    }
+    .brand-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .quick-toggles {
+      display: flex;
+      gap: 6px;
+    }
+    .mini-glass-btn {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 11px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    /* =========================================================================
+       iPhone 同款液态玻璃模式选择器 (适配手机触控滑动与高刷弹性动画)
+       ========================================================================= */
+    .liquid-glass-nav {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      padding: 5px;
+      border-radius: 999px;
+      background: linear-gradient(
+        135deg,
+        rgba(255, 255, 255, 0.18) 0%,
+        rgba(255, 255, 255, 0.05) 50%,
+        rgba(255, 255, 255, 0.15) 100%
+      );
+      backdrop-filter: blur(28px) saturate(210%);
+      -webkit-backdrop-filter: blur(28px) saturate(210%);
+      box-shadow:
+        0 14px 32px -8px rgba(0, 0, 0, 0.55),
+        inset 0 1.5px 1px rgba(255, 255, 255, 0.55),
+        inset 0 -1.5px 1.5px rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .liquid-pill {
+      position: absolute;
+      top: 5px;
+      bottom: 5px;
+      left: 5px;
+      width: calc((100% - 10px) / 3);
+      border-radius: 999px;
+      background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.36) 0%,
+        rgba(255, 255, 255, 0.12) 50%,
+        rgba(255, 255, 255, 0.26) 100%
+      );
+      backdrop-filter: blur(18px) brightness(1.2);
+      -webkit-backdrop-filter: blur(18px) brightness(1.2);
+      box-shadow:
+        0 6px 18px rgba(0, 0, 0, 0.35),
+        0 0 14px rgba(56, 189, 248, 0.25),
+        inset 0 1.5px 1.5px rgba(255, 255, 255, 0.88),
+        inset 0 -1px 2px rgba(0, 0, 0, 0.22);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      transition: transform 0.46s cubic-bezier(0.22, 1.28, 0.36, 1);
+      z-index: 1;
+      pointer-events: none;
+    }
+    .mode-tab {
+      position: relative;
+      z-index: 2;
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: rgba(248, 250, 252, 0.72);
+      padding: 10px 4px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 700;
+      text-align: center;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      transition: color 0.2s ease;
+    }
+    .mode-tab.active {
+      color: #ffffff;
+      text-shadow: 0 1px 8px rgba(255, 255, 255, 0.35);
+    }
+    .mode-sub {
+      font-size: 10px;
+      font-weight: 600;
+      opacity: 0.8;
+    }
+
+    /* 玻璃卡片容器 */
+    .glass-card {
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0.04));
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow:
+        0 18px 36px -10px rgba(0, 0, 0, 0.48),
+        inset 0 1px 1px rgba(255, 255, 255, 0.32);
+      padding: 16px;
+    }
+
+    /* 紧凑型倒计时与 35s-25s Driver Switch 警示卡 */
+    .timer-compact-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .ring-mini-wrap {
+      position: relative;
+      width: 118px;
+      height: 118px;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .ring-svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+    .ring-bg { fill: none; stroke: rgba(255,255,255,0.09); stroke-width: 10; }
+    .ring-switch { fill: none; stroke: rgba(245,158,11,0.38); stroke-width: 10; }
+    .ring-fg {
+      fill: none;
+      stroke: #38bdf8;
+      stroke-width: 10;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.1s linear, stroke 0.25s ease;
+    }
+    .time-readout {
+      text-align: center;
+      z-index: 2;
+    }
+    .time-main {
+      font-size: 30px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .time-tenth {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .timer-right-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .status-chip {
+      align-self: flex-start;
+      font-size: 11px;
+      font-weight: 800;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: rgba(56, 189, 248, 0.15);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #7dd3fc;
+    }
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr 0.8fr;
+      gap: 6px;
+    }
+    .act-btn {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.24);
+      border-radius: 14px;
+      padding: 11px 8px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #fff;
+      cursor: pointer;
+      box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.35);
+    }
+    .act-start { background: linear-gradient(135deg, #10b981, #059669); }
+    .act-pause { background: linear-gradient(135deg, #f59e0b, #d97706); }
+    .act-stop { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+    .act-reset { background: rgba(255, 255, 255, 0.12); }
+
+    /* 35s - 25s Driver Switch 手机强提醒横幅 */
+    .switch-alert-box {
+      margin-top: 12px;
+      padding: 11px 14px;
+      border-radius: 16px;
+      background: rgba(245, 158, 11, 0.12);
+      border: 1.5px solid rgba(245, 158, 11, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      transition: all 0.25s ease;
+    }
+    .switch-alert-box.pulsing {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.38), rgba(239, 68, 68, 0.34));
+      border-color: #fbbf24;
+      box-shadow: 0 0 26px rgba(245, 158, 11, 0.55);
+      animation: mobilePulse 0.7s infinite alternate ease-in-out;
+    }
+    .switch-alert-box.done {
+      background: rgba(16, 185, 129, 0.18);
+      border-color: rgba(16, 185, 129, 0.5);
+      animation: none;
+    }
+    @keyframes mobilePulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.02); }
+    }
+    .switch-info {
+      flex: 1;
+    }
+    .switch-headline {
+      font-size: 13px;
+      font-weight: 800;
+      color: #fde68a;
+    }
+    .switch-sub {
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.82);
+      margin-top: 2px;
+    }
+    .switch-done-btn {
+      appearance: none;
+      border: 1px solid rgba(255, 255, 255, 0.38);
+      background: rgba(255, 255, 255, 0.18);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 800;
+      padding: 8px 12px;
+      border-radius: 12px;
+      white-space: nowrap;
+    }
+
+    /* 沙袋图鉴栏 (第2、3、4张图：红、蓝、黄沙袋) */
+    .bags-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .bag-pill {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-radius: 16px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+    .bag-img {
+      width: 42px;
+      height: 32px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .bag-meta {
+      display: flex;
+      flex-direction: column;
+    }
+    .bag-name {
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .bag-qty {
+      font-size: 12px;
+      font-weight: 900;
+      color: var(--gold);
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* L1, L2, L3, L4 手机触控计分矩阵 */
+    .levels-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .lvl-card {
+      padding: 12px;
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .lvl-card.l4-gold {
+      background: linear-gradient(135deg, rgba(252, 224, 85, 0.14), rgba(255, 255, 255, 0.05));
+      border-color: rgba(252, 224, 85, 0.4);
+    }
+    .lvl-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .lvl-badge-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .lvl-badge {
+      font-size: 14px;
+      font-weight: 900;
+      padding: 3px 9px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.16);
+    }
+    .l4-gold .lvl-badge {
+      background: var(--yellow-bag);
+      color: #0f172a;
+    }
+    .lvl-unit-pts {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+    .lvl-subtotal-text {
+      font-size: 16px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .color-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .color-ctrl {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 5px 6px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.32);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .color-ctrl.c-red { border-bottom: 3px solid var(--red-bag); }
+    .color-ctrl.c-blue { border-bottom: 3px solid var(--blue-bag); }
+    .color-ctrl.c-yellow { border-bottom: 3px solid var(--yellow-bag); }
+    .color-ctrl.c-locked { opacity: 0.3; pointer-events: none; }
+
+    .t-btn {
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      font-size: 18px;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .t-btn:active {
+      transform: scale(0.92);
+      background: rgba(255, 255, 255, 0.28);
+    }
+    .t-num {
+      font-size: 16px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 底部悬浮液态玻璃总分栏 (适配小米全面屏手势小白条 & iOS 底部安全区) */
+    .bottom-dock {
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: var(--safe-bottom);
+      max-width: 540px;
+      margin: 0 auto;
+      z-index: 50;
+      padding: 12px 18px;
+      border-radius: 22px;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.82), rgba(30, 41, 59, 0.78));
+      backdrop-filter: blur(28px) saturate(200%);
+      -webkit-backdrop-filter: blur(28px) saturate(200%);
+      border: 1px solid rgba(242, 183, 41, 0.45);
+      box-shadow:
+        0 16px 36px rgba(0, 0, 0, 0.65),
+        inset 0 1px 1px rgba(255, 255, 255, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .dock-score-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+    .dock-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: #fde68a;
+    }
+    .dock-total {
+      font-size: 34px;
+      font-weight: 900;
+      line-height: 1;
+      color: #fff;
+      font-variant-numeric: tabular-nums;
+    }
+    .dock-breakdown {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .dock-actions {
+      display: flex;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+  <div class="ambient-canvas">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+  </div>
+
+  <div class="mobile-shell">
+    <!-- Top Header -->
+    <header class="top-header">
+      <div class="brand-box" onclick="document.getElementById('logoInput').click()">
+        <img
+          id="logoImg"
+          class="brand-logo"
+          src="HIS_Robotics_Logo_HD_transparent.png"
+          alt="HIS Robotics"
+          onerror="this.onerror=null;this.src=window.HIS_LOGO_URI;"
+        />
+        <div>
+          <span class="brand-tag">VEX IQ 2026 · LEVEL UP</span>
+          <span class="brand-sub">Xiaomi &amp; iOS 移动专业版</span>
+        </div>
+        <input type="file" id="logoInput" accept="image/*" style="display:none" />
+      </div>
+
+      <div class="quick-toggles">
+        <button class="mini-glass-btn" id="wakeBtn" onclick="requestWakeLock()">☀️ 常亮</button>
+        <button class="mini-glass-btn" id="soundBtn" onclick="toggleSound()">🔊 音效</button>
+      </div>
+    </header>
+
+    <!-- iPhone Liquid Glass Mode Switcher -->
+    <nav class="liquid-glass-nav" id="modeNav">
+      <div class="liquid-pill" id="liquidPill"></div>
+      <button class="mode-tab active" onclick="setMode('teamwork', 0, this)">
+        <span>🤝 联队赛</span>
+        <span class="mode-sub">35s–25s 换手</span>
+      </button>
+      <button class="mode-tab" onclick="setMode('driving', 1, this)">
+        <span>🎮 手动技能</span>
+        <span class="mode-sub">60s 停表</span>
+      </button>
+      <button class="mode-tab" onclick="setMode('autonomous', 2, this)">
+        <span>🤖 自动技能</span>
+        <span class="mode-sub">60s 纯自动</span>
+      </button>
+    </nav>
+
+    <!-- Timer & 35s-25s Driver Switch Card -->
+    <section class="glass-card">
+      <div class="timer-compact-row">
+        <div class="ring-mini-wrap">
+          <svg class="ring-svg" viewBox="0 0 120 120">
+            <circle class="ring-bg" cx="60" cy="60" r="50"></circle>
+            <circle
+              id="switchArc"
+              class="ring-switch"
+              cx="60"
+              cy="60"
+              r="50"
+              stroke-dasharray="52.36 314.16"
+              stroke-dashoffset="-130.9"
+            ></circle>
+            <circle
+              id="progressArc"
+              class="ring-fg"
+              cx="60"
+              cy="60"
+              r="50"
+              stroke-dasharray="314.16"
+              stroke-dashoffset="0"
+            ></circle>
+          </svg>
+          <div class="time-readout">
+            <div class="time-main" id="timeMain">01:00</div>
+            <div class="time-tenth" id="timeTenth">.0s</div>
+          </div>
+        </div>
+
+        <div class="timer-right-col">
+          <span class="status-chip" id="statusChip">READY · 联队赛 60s</span>
+          <div class="btn-row">
+            <button class="act-btn act-start" id="startBtn" onclick="toggleTimer()">▶ 开始</button>
+            <button class="act-btn act-stop" onclick="stopEarly()">⏹ 停表</button>
+            <button class="act-btn act-reset" onclick="resetTimer()">↺</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 35s-25s Driver Switch Alert -->
+      <div class="switch-alert-box" id="switchBox">
+        <div class="switch-info">
+          <div class="switch-headline" id="switchHeadline">🔄 35s–25s Driver Switch 换手提醒</div>
+          <div class="switch-sub" id="switchSub">倒计时 35 秒至 25 秒间响铃震动提醒交换遥控器 (&lt;GG11&gt;)</div>
+        </div>
+        <button class="switch-done-btn" id="switchBtn" onclick="markSwitched()">✓ 已换手</button>
+      </div>
+    </section>
+
+    <!-- Uploaded Bean Bags Showcase -->
+    <section class="bags-strip">
+      <div class="bag-pill">
+        <img id="imgRed" class="bag-img" src="Screenshot_2026-11-13_at_20.02.41-removebg-preview.png" alt="Red Bag" onerror="this.onerror=null;this.src=window.RED_URI;" />
+        <div class="bag-meta">
+          <span class="bag-name">红沙袋</span>
+          <span class="bag-qty" id="qtyRed">0 / 16</span>
+        </div>
+      </div>
+      <div class="bag-pill">
+        <img id="imgBlue" class="bag-img" src="Screenshot_2026-11-13_at_20.02.46-removebg-preview.png" alt="Blue Bag" onerror="this.onerror=null;this.src=window.BLUE_URI;" />
+        <div class="bag-meta">
+          <span class="bag-name">蓝沙袋</span>
+          <span class="bag-qty" id="qtyBlue">0 / 16</span>
+        </div>
+      </div>
+      <div class="bag-pill">
+        <img id="imgYellow" class="bag-img" src="Screenshot_2026-11-13_at_20.02.50-removebg-preview.png" alt="Yellow Bag" onerror="this.onerror=null;this.src=window.YELLOW_URI;" />
+        <div class="bag-meta">
+          <span class="bag-name">黄沙袋</span>
+          <span class="bag-qty" id="qtyYellow">0 / 6</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- L1, L2, L3, L4, Floor Scoring Cards -->
+    <section class="levels-stack">
+      <!-- L1 -->
+      <div class="lvl-card">
+        <div class="lvl-top">
+          <div class="lvl-badge-group">
+            <span class="lvl-badge">L1</span>
+            <span class="lvl-unit-pts">金字塔一层 · +3 分/个</span>
+          </div>
+          <span class="lvl-subtotal-text" id="subL1">0 分</span>
+        </div>
+        <div class="color-grid">
+          <div class="color-ctrl c-red">
+            <button class="t-btn" onclick="addBag('L1','red',-1)">−</button>
+            <span class="t-num" id="v-L1-red">0</span>
+            <button class="t-btn" onclick="addBag('L1','red',1)">+</button>
+          </div>
+          <div class="color-ctrl c-blue">
+            <button class="t-btn" onclick="addBag('L1','blue',-1)">−</button>
+            <span class="t-num" id="v-L1-blue">0</span>
+            <button class="t-btn" onclick="addBag('L1','blue',1)">+</button>
+          </div>
+          <div class="color-ctrl c-yellow">
+            <button class="t-btn" onclick="addBag('L1','yellow',-1)">−</button>
+            <span class="t-num" id="v-L1-yellow">0</span>
+            <button class="t-btn" onclick="addBag('L1','yellow',1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- L2 -->
+      <div class="lvl-card">
+        <div class="lvl-top">
+          <div class="lvl-badge-group">
+            <span class="lvl-badge">L2</span>
+            <span class="lvl-unit-pts">金字塔二层 · +6 分/个</span>
+          </div>
+          <span class="lvl-subtotal-text" id="subL2">0 分</span>
+        </div>
+        <div class="color-grid">
+          <div class="color-ctrl c-red">
+            <button class="t-btn" onclick="addBag('L2','red',-1)">−</button>
+            <span class="t-num" id="v-L2-red">0</span>
+            <button class="t-btn" onclick="addBag('L2','red',1)">+</button>
+          </div>
+          <div class="color-ctrl c-blue">
+            <button class="t-btn" onclick="addBag('L2','blue',-1)">−</button>
+            <span class="t-num" id="v-L2-blue">0</span>
+            <button class="t-btn" onclick="addBag('L2','blue',1)">+</button>
+          </div>
+          <div class="color-ctrl c-yellow">
+            <button class="t-btn" onclick="addBag('L2','yellow',-1)">−</button>
+            <span class="t-num" id="v-L2-yellow">0</span>
+            <button class="t-btn" onclick="addBag('L2','yellow',1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- L3 -->
+      <div class="lvl-card">
+        <div class="lvl-top">
+          <div class="lvl-badge-group">
+            <span class="lvl-badge">L3</span>
+            <span class="lvl-unit-pts">金字塔三层 · +12 分/个</span>
+          </div>
+          <span class="lvl-subtotal-text" id="subL3">0 分</span>
+        </div>
+        <div class="color-grid">
+          <div class="color-ctrl c-red">
+            <button class="t-btn" onclick="addBag('L3','red',-1)">−</button>
+            <span class="t-num" id="v-L3-red">0</span>
+            <button class="t-btn" onclick="addBag('L3','red',1)">+</button>
+          </div>
+          <div class="color-ctrl c-blue">
+            <button class="t-btn" onclick="addBag('L3','blue',-1)">−</button>
+            <span class="t-num" id="v-L3-blue">0</span>
+            <button class="t-btn" onclick="addBag('L3','blue',1)">+</button>
+          </div>
+          <div class="color-ctrl c-yellow">
+            <button class="t-btn" onclick="addBag('L3','yellow',-1)">−</button>
+            <span class="t-num" id="v-L3-yellow">0</span>
+            <button class="t-btn" onclick="addBag('L3','yellow',1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- L4 (Yellow Only) -->
+      <div class="lvl-card l4-gold">
+        <div class="lvl-top">
+          <div class="lvl-badge-group">
+            <span class="lvl-badge">L4</span>
+            <span class="lvl-unit-pts">最高塔 · +16 分/个 (仅黄沙袋 &lt;SC5&gt;)</span>
+          </div>
+          <span class="lvl-subtotal-text" id="subL4">0 分</span>
+        </div>
+        <div class="color-grid">
+          <div class="color-ctrl c-red c-locked">
+            <button class="t-btn">−</button>
+            <span class="t-num">✕</span>
+            <button class="t-btn">+</button>
+          </div>
+          <div class="color-ctrl c-blue c-locked">
+            <button class="t-btn">−</button>
+            <span class="t-num">✕</span>
+            <button class="t-btn">+</button>
+          </div>
+          <div class="color-ctrl c-yellow">
+            <button class="t-btn" onclick="addBag('L4','yellow',-1)">−</button>
+            <span class="t-num" id="v-L4-yellow">0</span>
+            <button class="t-btn" onclick="addBag('L4','yellow',1)">+</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Floor Goal -->
+      <div class="lvl-card">
+        <div class="lvl-top">
+          <div class="lvl-badge-group">
+            <span class="lvl-badge">FLOOR</span>
+            <span class="lvl-unit-pts">地面得分区 · +1 分/个 (&lt;SC3&gt;)</span>
+          </div>
+          <span class="lvl-subtotal-text" id="subFloor">0 分</span>
+        </div>
+        <div class="color-grid">
+          <div class="color-ctrl c-red">
+            <button class="t-btn" onclick="addBag('Floor','red',-1)">−</button>
+            <span class="t-num" id="v-Floor-red">0</span>
+            <button class="t-btn" onclick="addBag('Floor','red',1)">+</button>
+          </div>
+          <div class="color-ctrl c-blue">
+            <button class="t-btn" onclick="addBag('Floor','blue',-1)">−</button>
+            <span class="t-num" id="v-Floor-blue">0</span>
+            <button class="t-btn" onclick="addBag('Floor','blue',1)">+</button>
+          </div>
+          <div class="color-ctrl c-yellow">
+            <button class="t-btn" onclick="addBag('Floor','yellow',-1)">−</button>
+            <span class="t-num" id="v-Floor-yellow">0</span>
+            <button class="t-btn" onclick="addBag('Floor','yellow',1)">+</button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- Sticky Bottom Total Score Bar -->
+  <footer class="bottom-dock">
+    <div>
+      <div class="dock-score-wrap">
+        <span class="dock-label">总分 TOTAL</span>
+        <span class="dock-total" id="dockTotal">0</span>
+        <span class="dock-label">PTS</span>
+      </div>
+      <div class="dock-breakdown" id="dockBreakdown">L1:0 · L2:0 · L3:0 · L4:0 · F:0</div>
+    </div>
+    <div class="dock-actions">
+      <button class="mini-glass-btn" onclick="clearScores()">🧹 清零</button>
+    </div>
+  </footer>
+
+  <script>
+    // Embedded Vector Fallbacks for HIS Robotics Logo & VEX IQ Bean Bags
+    window.HIS_LOGO_URI = "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 150"><g fill="#f2b729" transform="skewX(-16)"><path d="M55 25 L82 25 L66 72 L106 72 C116 72 124 62 129 45 L136 25 L154 25 L122 125 L95 125 L108 86 L61 86 L48 125 L21 125 Z"/><rect x="168" y="25" width="28" height="100" rx="3"/><path d="M235 25 L302 25 C310 25 314 30 312 37 L309 45 L245 45 C238 45 234 50 236 56 C237 61 242 64 250 64 L288 64 C302 64 310 73 306 88 L299 109 C295 120 285 125 270 125 L200 125 L206 105 L268 105 C275 105 279 101 279 95 C279 89 275 85 267 85 L228 85 C213 85 206 76 210 61 L217 40 C220 30 227 25 235 25 Z"/><text x="326" y="108" font-family="-apple-system, sans-serif" font-weight="900" font-size="60">Robotics</text></g></svg>`);
+    function bagSvg(c) {
+      return "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 200"><rect x="14" y="16" width="252" height="168" rx="36" fill="${c}" stroke="rgba(255,255,255,0.3)" stroke-width="4"/><polygon points="55,92 72,92 92,126 112,92 129,92 99,140 85,140" fill="#8c9095"/><path d="M138,65 H168 C173,65 176,68 176,72 C176,76 173,79 168,79 H144 C141,79 139,81 139,84 V89 H168 C173,89 176,92 176,96 C176,100 173,103 168,103 H139 V109 C139,112 141,114 144,114 H168 C173,114 176,117 176,121 C176,125 173,128 168,128 H138 C131,128 126,122 126,115 V78 C126,70 131,65 138,65 Z" fill="#e2e5e9"/><polygon points="174,92 192,92 208,108 224,92 242,92 217,116 244,140 226,140 208,123 190,140 172,140 199,116" fill="#8c9095"/></svg>`);
+    }
+    window.RED_URI = bagSvg("#e1252b");
+    window.BLUE_URI = bagSvg("#29a8ff");
+    window.YELLOW_URI = bagSvg("#fce055");
+
+    window.addEventListener("DOMContentLoaded", () => {
+      const logo = document.getElementById("logoImg");
+      if (!logo.complete || logo.naturalWidth === 0) logo.src = window.HIS_LOGO_URI;
+      [["imgRed", window.RED_URI], ["imgBlue", window.BLUE_URI], ["imgYellow", window.YELLOW_URI]].forEach(([id, uri]) => {
+        const el = document.getElementById(id);
+        if (!el.complete || el.naturalWidth === 0) el.src = uri;
+      });
+    });
+
+    document.getElementById("logoInput").addEventListener("change", (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = (ev) => { document.getElementById("logoImg").src = ev.target.result; };
+      r.readAsDataURL(f);
+    });
+
+    // Xiaomi HyperOS Haptic Feedback & Screen WakeLock
+    function vibrate(pattern) {
+      if (navigator.vibrate) {
+        try { navigator.vibrate(pattern); } catch (_) {}
+      }
+    }
+
+    let wakeLockObj = null;
+    async function requestWakeLock() {
+      if ("wakeLock" in navigator) {
+        try {
+          wakeLockObj = await navigator.wakeLock.request("screen");
+          document.getElementById("wakeBtn").textContent = "☀️ 已常亮";
+          vibrate(20);
+        } catch (_) {
+          document.getElementById("wakeBtn").textContent = "☀️ 常亮";
+        }
+      }
+    }
+
+    // Audio Synthesizer
+    let soundOn = true;
+    let audioCtx = null;
+    function ensureAudio() {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AC();
+      }
+      if (audioCtx.state === "suspended") audioCtx.resume();
+    }
+    function beep(freq, dur, type = "sine", gainVal = 0.22, delay = 0) {
+      if (!soundOn) return;
+      ensureAudio();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = type;
+      o.frequency.setValueAtTime(freq, audioCtx.currentTime + delay);
+      g.gain.setValueAtTime(gainVal, audioCtx.currentTime + delay);
+      g.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + delay + dur);
+      o.connect(g);
+      g.connect(audioCtx.destination);
+      o.start(audioCtx.currentTime + delay);
+      o.stop(audioCtx.currentTime + delay + dur);
+    }
+    function toggleSound() {
+      soundOn = !soundOn;
+      document.getElementById("soundBtn").textContent = soundOn ? "🔊 音效" : "🔇 静音";
+      vibrate(15);
+    }
+
+    // Mode Switching with Liquid Glass Pill
+    let mode = "teamwork";
+    function setMode(newMode, idx, btn) {
+      if (running) pauseTimer();
+      mode = newMode;
+      vibrate(18);
+      document.querySelectorAll(".mode-tab").forEach((b) => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("liquidPill").style.transform = `translateX(${idx * 100}%)`;
+      document.getElementById("switchArc").style.opacity = mode === "autonomous" ? "0" : "1";
+      resetTimer();
+    }
+
+    // Timer Logic (60s + 35s-25s Driver Switch Alert)
+    const CIRC = 2 * Math.PI * 50; // 314.16
+    let timeLeft = 60.0;
+    let running = false;
+    let lastTs = null;
+    let rafId = null;
+    let switched = false;
+    let fired35 = false;
+    let fired25 = false;
+    let lastSecBeep = null;
+
+    function toggleTimer() {
+      vibrate(25);
+      if (running) pauseTimer();
+      else startTimer();
+    }
+
+    function startTimer() {
+      if (timeLeft <= 0) resetTimer();
+      if (timeLeft === 60.0) {
+        beep(523.25, 0.12, "triangle", 0.25, 0);
+        beep(659.25, 0.12, "triangle", 0.25, 0.12);
+        beep(783.99, 0.12, "triangle", 0.25, 0.24);
+        beep(1046.5, 0.4, "sawtooth", 0.22, 0.36);
+        requestWakeLock();
+      }
+      running = true;
+      lastTs = performance.now();
+      document.getElementById("startBtn").textContent = "⏸ 暂停";
+      document.getElementById("startBtn").className = "act-btn act-pause";
+      document.getElementById("statusChip").textContent = "RUNNING · 比赛进行中";
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function pauseTimer() {
+      running = false;
+      if (rafId) cancelAnimationFrame(rafId);
+      document.getElementById("startBtn").textContent = "▶ 继续";
+      document.getElementById("startBtn").className = "act-btn act-start";
+      document.getElementById("statusChip").textContent = "PAUSED · 已暂停";
+    }
+
+    function stopEarly() {
+      if (running) pauseTimer();
+      const stopSec = Math.ceil(timeLeft);
+      vibrate([40, 60, 40]);
+      beep(660, 0.2, "triangle", 0.22, 0);
+      document.getElementById("statusChip").textContent = `STOP TIME: 剩余 ${stopSec}s`;
+    }
+
+    function resetTimer() {
+      running = false;
+      if (rafId) cancelAnimationFrame(rafId);
+      timeLeft = 60.0;
+      switched = false;
+      fired35 = false;
+      fired25 = false;
+      lastSecBeep = null;
+      document.getElementById("startBtn").textContent = "▶ 开始";
+      document.getElementById("startBtn").className = "act-btn act-start";
+      const labels = {
+        teamwork: "READY · 联队赛 60s",
+        driving: "READY · 手动技能 60s",
+        autonomous: "READY · 自动技能 60s"
+      };
+      document.getElementById("statusChip").textContent = labels[mode];
+      const sb = document.getElementById("switchBox");
+      sb.classList.remove("pulsing", "done");
+      document.getElementById("switchHeadline").textContent =
+        mode === "autonomous" ? "🤖 自动编程技能赛 (无需换手)" : "🔄 35s–25s Driver Switch 换手提醒";
+      document.getElementById("switchBtn").textContent = "✓ 已换手";
+      updateClockUI();
+    }
+
+    function markSwitched() {
+      switched = true;
+      vibrate([30, 50, 30]);
+      const sb = document.getElementById("switchBox");
+      sb.classList.remove("pulsing");
+      sb.classList.add("done");
+      document.getElementById("switchBtn").textContent = `✅ ${timeLeft.toFixed(0)}s 已换`;
+    }
+
+    function loop(now) {
+      if (!running) return;
+      const dt = (now - lastTs) / 1000;
+      lastTs = now;
+      timeLeft = Math.max(0, timeLeft - dt);
+
+      if (mode !== "autonomous") {
+        if (timeLeft <= 35.0 && timeLeft > 25.0) {
+          if (!fired35) {
+            fired35 = true;
+            beep(880, 0.16, "square", 0.25, 0);
+            beep(1174.66, 0.16, "square", 0.25, 0.18);
+            beep(880, 0.26, "square", 0.25, 0.36);
+            vibrate([200, 100, 200, 100, 300]); // 小米手机强震动提醒换手
+          }
+          if (!switched) {
+            document.getElementById("switchBox").classList.add("pulsing");
+          }
+          const leftWin = Math.ceil(timeLeft - 25.0);
+          document.getElementById("switchHeadline").textContent = `⚠️ 立即交换遥控器！窗口剩余 ${leftWin}s`;
+          document.getElementById("statusChip").textContent = "DRIVER SWITCH (35s–25s)";
+        } else if (timeLeft <= 25.0 && fired35 && !fired25) {
+          fired25 = true;
+          beep(660, 0.15, "triangle", 0.22, 0);
+          beep(523.25, 0.22, "triangle", 0.22, 0.16);
+          vibrate(120);
+          document.getElementById("switchBox").classList.remove("pulsing");
+          document.getElementById("switchHeadline").textContent = switched ? "✅ 已完成遥控器交接" : "换手窗口已结束 (25s)";
+          document.getElementById("statusChip").textContent = "RUNNING · 下半场";
+        }
+      }
+
+      const ceilS = Math.ceil(timeLeft);
+      if (ceilS <= 10 && ceilS >= 1 && ceilS !== lastSecBeep) {
+        lastSecBeep = ceilS;
+        beep(ceilS <= 3 ? 987.77 : 783.99, 0.08, "sine", 0.18, 0);
+        if (ceilS <= 5) vibrate(35);
+      }
+
+      updateClockUI();
+
+      if (timeLeft <= 0) {
+        running = false;
+        beep(220, 0.85, "sawtooth", 0.3, 0);
+        vibrate([300, 120, 400]);
+        document.getElementById("statusChip").textContent = "MATCH OVER · 比赛结束";
+        document.getElementById("startBtn").textContent = "↺ 重来";
+        return;
+      }
+      rafId = requestAnimationFrame(loop);
+    }
+
+    function updateClockUI() {
+      const s = Math.floor(timeLeft);
+      const t = Math.floor((timeLeft - s) * 10);
+      const m = Math.floor(s / 60);
+      const rem = s % 60;
+      document.getElementById("timeMain").textContent = `${String(m).padStart(2, "0")}:${String(rem).padStart(2, "0")}`;
+      document.getElementById("timeTenth").textContent = `.${t}s`;
+
+      const arc = document.getElementById("progressArc");
+      arc.style.strokeDashoffset = CIRC * (1 - timeLeft / 60.0);
+      if (timeLeft <= 10) arc.style.stroke = "#f43f5e";
+      else if (mode !== "autonomous" && timeLeft <= 35 && timeLeft > 25) arc.style.stroke = "#fbbf24";
+      else arc.style.stroke = "#38bdf8";
+    }
+
+    // Scoring Engine (L1=3, L2=6, L3=12, L4=16 Yellow only, Floor=1)
+    const PTS = { L1: 3, L2: 6, L3: 12, L4: 16, Floor: 1 };
+    const LIMITS = { red: 16, blue: 16, yellow: 6 };
+    const bags = {
+      L1: { red: 0, blue: 0, yellow: 0 },
+      L2: { red: 0, blue: 0, yellow: 0 },
+      L3: { red: 0, blue: 0, yellow: 0 },
+      L4: { red: 0, blue: 0, yellow: 0 },
+      Floor: { red: 0, blue: 0, yellow: 0 }
+    };
+
+    function colorSum(c) {
+      return bags.L1[c] + bags.L2[c] + bags.L3[c] + bags.L4[c] + bags.Floor[c];
+    }
+
+    function addBag(lvl, col, d) {
+      if (lvl === "L4" && col !== "yellow") return;
+      const next = bags[lvl][col] + d;
+      if (next < 0) return;
+      if (d > 0 && colorSum(col) >= LIMITS[col]) {
+        vibrate([40, 40, 40]);
+        beep(240, 0.1, "sawtooth", 0.15, 0);
+        return;
+      }
+      bags[lvl][col] = next;
+      vibrate(12);
+      beep(d > 0 ? 740 : 520, 0.04, "sine", 0.1, 0);
+      renderScoreUI();
+    }
+
+    function renderScoreUI() {
+      let total = 0;
+      const subMap = {};
+      ["L1", "L2", "L3", "L4", "Floor"].forEach((l) => {
+        const cnt = bags[l].red + bags[l].blue + bags[l].yellow;
+        const p = cnt * PTS[l];
+        subMap[l] = p;
+        total += p;
+        ["red", "blue", "yellow"].forEach((c) => {
+          const el = document.getElementById(`v-${l}-${c}`);
+          if (el) el.textContent = bags[l][c];
+        });
+        document.getElementById(`sub${l}`).textContent = `${p} 分`;
+      });
+
+      document.getElementById("dockTotal").textContent = total;
+      document.getElementById("dockBreakdown").textContent =
+        `L1:${subMap.L1} · L2:${subMap.L2} · L3:${subMap.L3} · L4:${subMap.L4} · F:${subMap.Floor}`;
+
+      document.getElementById("qtyRed").textContent = `${colorSum("red")} / 16`;
+      document.getElementById("qtyBlue").textContent = `${colorSum("blue")} / 16`;
+      document.getElementById("qtyYellow").textContent = `${colorSum("yellow")} / 6`;
+    }
+
+    function clearScores() {
+      vibrate(25);
+      ["L1", "L2", "L3", "L4", "Floor"].forEach((l) => {
+        bags[l].red = 0;
+        bags[l].blue = 0;
+        bags[l].yellow = 0;
+      });
+      renderScoreUI();
+    }
+  </script>
+</body>
+</html>
